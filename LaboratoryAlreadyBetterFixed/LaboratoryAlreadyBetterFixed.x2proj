@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Default" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Guid>0fa29413-f810-42c9-9858-e5b05d30cad8</Guid>
+    <Name>LaboratoryAlreadyBetterFixed</Name>
+    <Description>Description of My XCOM 2 Mod.</Description>
+    <SteamPublishID>0</SteamPublishID>
+    <AssemblyName>LaboratoryAlreadyBetterFixed</AssemblyName>
+    <RootNamespace>LaboratoryAlreadyBetterFixed</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Folder Include="Config\" />
+    <Folder Include="Localization\" />
+    <Folder Include="Src\" />
+    <Folder Include="Src\LaboratoryAlreadyBetterFixed\" />
+    <Folder Include="Src\LaboratoryAlreadyBetterFixed\Classes\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Localization\LaboratoryAlreadyBetterFixed.int">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="ReadMe.txt" />
+    <Content Include="ModPreview.jpg" />
+    <Content Include="Config\XComEditor.ini" />
+    <Content Include="Config\XComEngine.ini" />
+    <Content Include="Config\XComGame.ini" />
+    <Content Include="Localization\XComGame.int" />
+    <Content Include="Src\LaboratoryAlreadyBetterFixed\Classes\AddFacilityButton.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\LaboratoryAlreadyBetterFixed\Classes\Helper.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\LaboratoryAlreadyBetterFixed\Classes\LaboratoryProject.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\LaboratoryAlreadyBetterFixed\Classes\Monkey_UIChooseResearch.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\LaboratoryAlreadyBetterFixed\Classes\UILaboratory.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\LaboratoryAlreadyBetterFixed\Classes\UIReport.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\LaboratoryAlreadyBetterFixed\Classes\Upgrades.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\LaboratoryAlreadyBetterFixed\Classes\X2DownloadableContentInfo_LaboratoryAlreadyBetterFixed.uc" />
+  </ItemGroup>
+  <Import Project="$(MSBuildLocalExtensionPath)\XCOM2.targets" />
+</Project>

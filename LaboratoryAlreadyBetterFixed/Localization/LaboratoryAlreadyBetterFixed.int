@@ -1,0 +1,14 @@
+[AddFacilityButton]
+OpenUILaboratory = "Choose Research"
+
+[UILaboratory]
+Title = "Secondary Research"
+TitleUnlocks = "Unlocks"
+Pause = "Pause"
+Paused = "[Paused]"
+ButtonResearch = "Research"
+AlreadyCompleted = "Already Completed"
+RequirementsNotMet = "Requirements Not Met"
+InProgress = "[In Progress]"
+Resume = "Resume"
+ToggleQueue = "Toggle Queue"
