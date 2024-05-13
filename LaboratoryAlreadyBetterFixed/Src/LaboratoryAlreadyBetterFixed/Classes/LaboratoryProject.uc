@@ -132,7 +132,7 @@ function OnProjectCompleted()
 	{
         if(`GAME.GetGeoscape().IsScanning())
         {
-			`HQPRES.StrategyMap2D.ToggleScan();            
+			`HQPRES.StrategyMap2D.ToggleScan();
         }
 
 		Facility.GetMyTemplate().SelectFacilityFn(Facility.GetReference(), true);

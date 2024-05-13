@@ -7,16 +7,20 @@ var config bool ShowCompletedTech;
 var config bool ShowLockedTechBreakthrough;
 var config array<name> DisableTech;
 
-var localized string Title;
-var localized string TitleUnlocks;
-var localized string Pause;
-var localized string Paused;
-var localized string Resume;
-var localized string InProgress;
-var localized string ButtonResearch;
-var localized string AlreadyCompleted;
-var localized string RequirementsNotMet;
+var localized string m_strTitle;
+var localized string m_strStart;
+var localized string m_strPause;
+var localized string m_strResume;
+var localized string m_strInProgress;
+var localized string m_strAlreadyCompleted;
+var localized string m_strRequirementsNotMet;
 var localized string ToggleQueue;
+
+var localized string m_strRewardsTitle;
+var localized string m_strRewardsEmpty;
+var localized string m_strRewardsPossible;
+var localized string m_strRewardsPartial;
+var localized string m_strRewardsUnknown;
 
 var name DisplayTag;
 var name CameraTag;
@@ -34,8 +38,19 @@ var UIPanel Reward;
 var UIX2PanelHeader TitleHeader;
 var UITextContainer Description;
 
-var string Prefix_Item, Prefix_Facility, Prefix_FacilityUpgrade, Prefix_Research, Prefix_ProvingGround;
-var string Item, Facility, FacilityUpgrade, Research, ProvingGround;
+//custom struct for unlocks
+struct UnlockedItems_Orig
+{
+	var name ItemType;
+	var string Unlock;
+    var bool isPartial;
+    var string ItemImage;
+    var bool isRewardDeck;
+    var bool bHide;
+};
+
+//easy strings for the icons
+var string ItemIcon, FacilityIcon, FacilityUpgradeIcon, ResearchIcon, ProvingGroundIcon, ShadowIcon, PsiIcon, ErrorIcon;
 
 var int ConfirmButtonX;
 var int ConfirmButtonY;
@@ -87,7 +102,7 @@ simulated function ShowResources()
 simulated function BuildScreen()
 {
 	TitleHeader = Spawn(class'UIX2PanelHeader', self);
-	TitleHeader.InitPanelHeader('Header', Title);
+	TitleHeader.InitPanelHeader('Header', m_strTitle);
 	TitleHeader.SetHeaderWidth(1540);
     TitleHeader.SetPosition(200, 65);
 
@@ -104,10 +119,10 @@ simulated function BuildScreen()
 	Research_List.OnItemDoubleClicked = Research_List_OnPurchaseClicked;		
 	Navigator.SetSelected(Research_List);
     
-    if (`ISCONTROLLERACTIVE)
-    {
-        Research_List.OnItemClicked = OnItemSelectedCallback;
-    }
+    // if (`ISCONTROLLERACTIVE)
+    // {
+    //     Research_List.OnItemClicked = OnItemSelectedCallback;
+    // }
 
 	ItemCard = Spawn(class'UIItemCard', self);
     ItemCard.InitItemCard('PreviewCard');
@@ -164,42 +179,37 @@ simulated function OnItemSelectedCallback(UIList ContainerList, int ItemIndex)
 
 simulated function BuildResearchUnlocks()
 {
+    //setup the new panel and common icons as strings, inject image, (image path, width, hieght, vertical offset)
+    ItemIcon =              class'UIUtilities_Text'.static.InjectImage("img:///UILibrary_XPACK_StrategyImages.MissionIcon_SupplyDrop",  20, 20, -5); //the only one NOT referrenced in UIUtilities_Image
+    ResearchIcon =          class'UIUtilities_Text'.static.InjectImage(class'UIUtilities_Image'.const.AlertIcon_Science,                20, 20, -5); //techs
+    ProvingGroundIcon =     class'UIUtilities_Text'.static.InjectImage(class'UIUtilities_Image'.const.AlertIcon_Construction,           20, 20, -5);
+    ShadowIcon =            class'UIUtilities_Text'.static.InjectImage(class'UIUtilities_Image'.const.HTML_AttentionIcon,               20, 20, -5);
+    FacilityIcon =          class'UIUtilities_Text'.static.InjectImage(class'UIUtilities_Image'.const.AlertIcon_Engineering,            20, 20, -5);
+    FacilityUpgradeIcon =   class'UIUtilities_Text'.static.InjectImage(class'UIUtilities_Image'.const.FacilityStatus_Power,             20, 20, -5);
+    PsiIcon =               class'UIUtilities_Text'.static.InjectImage(class'UIUtilities_Image'.const.EventQueue_Psi,                   20, 20, -5);
+    ErrorIcon =             class'UIUtilities_Text'.static.InjectImage(class'UIUtilities_Image'.const.EventQueue_Alien,                 20, 20, -5); //used for quick identifiction of errors
+
     RewardBG = Spawn(class'UIBGBox', self);
     RewardBG.LibID = class'UIUtilities_Controls'.const.MC_X2Background;
     RewardBG.InitBG('ShowResearchUnlocks-Reward-BG', 1255, 110, 500, 820);
+
     Reward = Spawn(class'UIPanel', self);
     Reward.InitPanel('ShowResearchUnlocks-Reward');
     Reward.SetSize(RewardBG.Width, RewardBG.Height);
     Reward.SetPosition(RewardBG.X, RewardBG.Y);
+
     TitleHeader = Spawn(class'UIX2PanelHeader', Reward);
-    TitleHeader.InitPanelHeader(, class'UIUtilities_Text'.static.GetColoredText(TitleUnlocks, eUIState_Cash, 32), "");
+    TitleHeader.InitPanelHeader('', class'UIUtilities_Text'.static.GetColoredText(m_strRewardsTitle, eUIState_Cash, 32), "");
     TitleHeader.SetPosition(TitleHeader.X + 10, TitleHeader.Y + 10);
     TitleHeader.SetHeaderWidth(Reward.Width - 20);
+
     Description = Spawn(class'UITextContainer', Reward);
     Description.InitTextContainer();
     Description.bAutoScroll = true;
     Description.SetSize(RewardBG.Width - 20, RewardBG.Height - 55);
     Description.SetPosition(Description.X + 10, Description.Y + 50);
-    Description.Text.SetHeight(Description.Text.Height * 1.5f);
 
-    // We do all this work here to prevent redoing it everytime the text is updated
-    Item = class'UIUtilities_Text'.static.InjectImage("img:///UILibrary_XPACK_StrategyImages.MissionIcon_SupplyDrop", 22, 22, -5);
-    Facility = class'UIUtilities_Text'.static.InjectImage("img:///UILibrary_StrategyImages.AlertIcons.Icon_engineering", 22, 22, -5);
-    FacilityUpgrade = class'UIUtilities_Text'.static.InjectImage("img:///gfxComponents.facility_power_icon", 22, 22, -5);
-    Research = class'UIUtilities_Text'.static.InjectImage("img:///UILibrary_StrategyImages.AlertIcons.Icon_science", 22, 22, -5);
-    ProvingGround = class'UIUtilities_Text'.static.InjectImage("img:///UILibrary_XPACK_Common.Poster.posterIcon20", 24, 24, -5);
-
-    Prefix_Item = class'UIAlert'.default.m_strItemUnlock;
-    Prefix_Facility = class'UIAlert'.default.m_strFacilityUnlock;
-    Prefix_FacilityUpgrade = class'UIAlert'.default.m_strUpgradeUnlock;
-    Prefix_Research = class'UIAlert'.default.m_strResearchUnlock;
-    Prefix_ProvingGround = class'UIAlert'.default.m_strProjectUnlock;
-
-    Prefix_Item -= " <XGParam:StrValue0/!ItemName/>";
-    Prefix_Facility -= " <XGParam:StrValue0/!FacilityName/>";
-    Prefix_FacilityUpgrade -= " <XGParam:StrValue0/!FacilityUpgradeName/>";
-    Prefix_Research -= " <XGParam:StrValue0/!TechName/>";
-    Prefix_ProvingGround -= " <XGParam:StrValue0/!TechName/>";
+    Description.Text.SetHeight(Description.Text.Height * 7.0f);
 
     UpdateRewardText();
 }
@@ -208,15 +218,9 @@ simulated function UpdateRewardText()
 {
   	local XComGameState_Tech Tech;
     local X2TechTemplate TechTemplate;
-    local int i;
-    local array<StateObjectReference> NewResearch, NewProvingGroundProjects;
-    local array<X2ItemTemplate> NewItems;
-    local array<X2FacilityTemplate> NewFacilities;
-    local array<X2FacilityUpgradeTemplate> NewUpgrades;
-    local array<StateObjectReference> NewInstantResearch;
-    local array<StateObjectReference> NewBreakthroughResearch;
-    local array<StateObjectReference> NewInspiredResearch;
+    local array<UnlockedItems_Orig> UnlockedItems;
 	local string Unlocks;
+    local int i;
 
     i = Research_List.SelectedIndex;
 	Tech = Research_Tech[i];
@@ -224,50 +228,336 @@ simulated function UpdateRewardText()
     if (Tech != none)
     {
         TechTemplate = Tech.GetMyTemplate();
-	    TechTemplate.GetUnlocks(NewResearch, NewProvingGroundProjects, NewItems, NewFacilities, NewUpgrades, NewInstantResearch, NewBreakthroughResearch, NewInspiredResearch);
 
-        // Items
-        HandleArray(Unlocks, Item, class'UIAlert'.static.GetItemUnlockStrings(NewItems));
-        // Facilities
-        HandleArray(Unlocks, Facility, class'UIAlert'.static.GetFacilityUnlockStrings(NewFacilities));
-        // Facility Upgrades
-        HandleArray(Unlocks, FacilityUpgrade, class'UIAlert'.static.GetUpgradeUnlockStrings(NewUpgrades));
-        // Techs
-        HandleArray(Unlocks, Research, class'UIAlert'.static.GetResearchUnlockStrings(NewResearch));
-        // Proving Ground Projects
-        HandleArray(Unlocks, ProvingGround, class'UIAlert'.static.GetProjectUnlockStrings(NewProvingGroundProjects));
+        //work out what it unlocks
+        CustomGetUnlocks(TechTemplate, UnlockedItems);
 
-        // Remove these substrings to conserve space
-        Unlocks -= Prefix_Item;
-        Unlocks -= Prefix_Facility;
-        Unlocks -= Prefix_FacilityUpgrade;
-        Unlocks -= Prefix_Research;
-        Unlocks -= Prefix_ProvingGround;
+        //create the message array string  
+        MessageArray(Unlocks, UnlockedItems);
 
-        Unlocks = ("<font size='22'>" $ Unlocks $ "</font>");
-
-        Description.SetHTMLText(Unlocks);
+        //change the description in the reward list        
+        Description.SetText(class'UIUtilities_Text'.static.AddFontInfo(Unlocks, false, false, false, 22) );
     }
 }
 
-simulated function HandleArray(out string Unlocks, string Icon, array<string> Imports)
-{
-    local int i;
+///////////////////////////////////////////////////////////////////////////////
+//  INFORMATION GATHERING
+///////////////////////////////////////////////////////////////////////////////
 
-    if(Imports.Length > 0 && Unlocks != "")
+// work out what the selected item unlocks
+static function CustomGetUnlocks(X2TechTemplate TemplateToUpdate, out array<UnlockedItems_Orig> UnlockedItems)
+{
+    local X2ItemTemplateManager             ItemTemplateManager;
+    local X2StrategyElementTemplateManager  TemplateManager;
+
+    local X2DataTemplate                    DataTemplate;
+    local X2ItemTemplate                    ItemTemplate, Tier2Template, Tier3Template;	
+    local X2TechTemplate                    TechTemplate;
+    local X2FacilityTemplate                FacilityTemplate;
+    local X2FacilityUpgradeTemplate         FacilityUpgTemplate;     
+    local X2SchematicTemplate               SchematicTemplate;    
+
+	local array<name>                       TemplateNames;
+    local name                              TemplateName;
+    local int                               i;
+
+    local UnlockedItems_Orig UnlockedItem;
+    
+    ItemTemplateManager = class'X2ItemTemplateManager'.static.GetItemTemplateManager();
+    TemplateManager = class'X2StrategyElementTemplateManager'.static.GetStrategyElementTemplateManager();
+
+	TemplateManager.GetTemplateNames(TemplateNames);       
+
+    //for techs, research, proving ground, facility schematics
+    foreach TemplateNames(TemplateName)
+	{
+        //Research Techs and Proving Grounds are covered here
+        TechTemplate = X2TechTemplate(TemplateManager.FindStrategyElementTemplate(TemplateName));
+        if ( TechTemplate != None )             
+        {                
+            if (TechTemplate.Requirements.RequiredTechs.Find(TemplateToUpdate.DataName) != INDEX_NONE)
+            {
+                // skip over breakthroughs and remove techs that have already been completed and techs to be hidden based on config DisabledTechs
+                if (TechTemplate.bBreakthrough || `XCOMHQ.IsTechResearched(TechTemplate.DataName))
+                {
+                    continue; //move on to the next item
+                }
+                else
+                {
+                    if ( TechTemplate.bProvingGround )      {   UnlockedItem.ItemType = 'PG';       }
+                    else if (TechTemplate.bShadowProject)   {   UnlockedItem.ItemType = 'Shadow';   }
+                    else                                    {   UnlockedItem.ItemType = 'Tech';     }
+
+                    UnlockedItem.Unlock = TechTemplate.DisplayName;
+                    UnlockedItem.isRewardDeck = false;                    
+
+                    //found out if the item requires more stuff than this tech
+                    UnlockedItem.isPartial = IsPartialUnlock(TemplateToUpdate.DataName, TechTemplate.Requirements.RequiredTechs);
+
+                    //add it to the OUT array
+                    UnlockedItems.AddItem(UnlockedItem);
+                    
+                    continue; //move on to the next item
+
+                }
+            }
+        }//end tech != none
+
+        // it wasn't a 'tech' (research/shadow/PG/breakthrough) ... not already done ... so must be a facility
+        //check for a facility
+        FacilityTemplate = X2FacilityTemplate(TemplateManager.FindStrategyElementTemplate(TemplateName));
+        if ( FacilityTemplate != none )
+        {
+            if(FacilityTemplate.Requirements.RequiredTechs.Find(TemplateToUpdate.DataName) != INDEX_NONE )
+            {
+                UnlockedItem.ItemType = 'Facility';
+                UnlockedItem.Unlock = FacilityTemplate.DisplayName;
+                UnlockedItem.isRewardDeck = false;                
+
+                //found out if the item requires more stuff than this tech
+                UnlockedItem.isPartial = IsPartialUnlock(TemplateToUpdate.DataName, FacilityTemplate.Requirements.RequiredTechs);
+                
+                //add it to the OUT array
+                UnlockedItems.AddItem(UnlockedItem);
+                continue; //move on to the next item
+            }
+        }//end facility !=none
+
+        //wasn't a facility, must be a facility upgrade
+        FacilityUpgTemplate = X2FacilityUpgradeTemplate(TemplateManager.FindStrategyElementTemplate(TemplateName));
+        if ( FacilityUpgTemplate != none )
+        {
+            if(FacilityUpgTemplate.Requirements.RequiredTechs.Find(TemplateToUpdate.DataName) != INDEX_NONE )
+            {
+                UnlockedItem.ItemType = 'FacilityUpgrade';
+                UnlockedItem.Unlock = FacilityUpgTemplate.DisplayName;
+                UnlockedItem.isRewardDeck = false;                             
+
+                //found out if the item requires more stuff than this tech
+                UnlockedItem.isPartial = IsPartialUnlock(TemplateToUpdate.DataName, FacilityUpgTemplate.Requirements.RequiredTechs);
+                
+                //add it to the OUT array
+                UnlockedItems.AddItem(UnlockedItem);
+                continue; //move on to the next item
+            }
+        }//end fac upgrade !=none
+    }//end strategy templates check
+
+    // For items and schematics
+    foreach ItemTemplateManager.IterateTemplates(DataTemplate, none)
     {
-        Unlocks $= "\n";
+        ItemTemplate = X2ItemTemplate(DataTemplate);
+
+        if (ItemTemplate != none)
+        {
+            UnlockedItem.ItemType = 'Item';
+            
+            // if ( default.bObfuscateIfNotFound && default.arrItemToObfuscate.Find(ItemTemplate.DataName) != -1)
+            // {
+            //     //try to find if xcom has ever had or has the item in question
+            //     //by type, unlocked, current inventory, by state/quantity recorded at least once (even if current is 0)
+            //     if  (   `XCOMHQ.EverAcquiredInventoryTypes.Find(ItemTemplate.DataName) != INDEX_NONE
+            //         ||  `XCOMHQ.UnlockedItems.Find(ItemTemplate.DataName) != INDEX_NONE
+            //         ||  `XCOMHQ.HasItem(ItemTemplate)
+            //         ||  `XCOMHQ.GetNumItemInInventory(ItemTemplate.DataName) > 0
+            //         ||  `XCOMHQ.GetItemByName(ItemTemplate.DataName) != none
+            //         )
+            //     {
+            //         UnlockedItem.bHide = false;
+            //     }
+            //     else
+            //     {
+            //         UnlockedItem.bHide = true;
+            //     }
+            // }
+            // else    //not an item to obfuscate
+            // {
+            //   UnlockedItem.bHide = false;
+            // }
+
+            if (ItemTemplate.Requirements.RequiredTechs.Find(TemplateToUpdate.DataName) != INDEX_NONE
+                || ItemTemplate.ArmoryDisplayRequirements.RequiredTechs.Find(TemplateToUpdate.DataName) != INDEX_NONE
+                || ItemTemplate.CreatorTemplateName == TemplateToUpdate.DataName
+               )
+            {
+                //for item schematic templates
+                SchematicTemplate = X2SchematicTemplate(DataTemplate);
+                if (SchematicTemplate != none)
+                {   
+                    // I think this block of code does't use ItemTemplate anymore, so let's use it
+                    ItemTemplate = ItemTemplateManager.FindItemTemplate(SchematicTemplate.ReferenceItemTemplate);                                
+                    
+                    UnlockedItem.Unlock = SchematicTemplate.GetItemFriendlyName();
+                    UnlockedItem.isRewardDeck = false;                    
+
+                    //found out if the item requires more stuff than this tech
+                    UnlockedItem.isPartial = IsPartialUnlock(TemplateToUpdate.DataName, ItemTemplate.Requirements.RequiredTechs);
+
+					//this should stop any 'empty' schematics from being added ... thanks Iridar!
+					// if (SchematicTemplate.ItemsToUpgrade.Length != 0 && SchematicTemplate.ItemRewards.Length != 0) // This one skipped COTK2.0 schematics
+                    // This should do it - refer to PATemplateMods::KillItem from "Prototype Armoury Beta"
+                    if (SchematicTemplate.CanBeBuilt != false && SchematicTemplate.PointsToComplete < 999999)
+					{
+						//add it to the OUT array
+						UnlockedItems.AddItem(UnlockedItem);
+                    }
+                    continue; //move on to the next item in the list
+                }
+                //normal item directly unlocked
+                else
+                {
+                    UnlockedItem.Unlock = ItemTemplate.GetItemFriendlyNameNoStats();
+                    UnlockedItem.isRewardDeck = false;                    
+
+                    //found out if the item requires more stuff than this tech
+                    UnlockedItem.isPartial = IsPartialUnlock(TemplateToUpdate.DataName, ItemTemplate.Requirements.RequiredTechs);
+
+                    //add it to the OUT array
+                    UnlockedItems.AddItem(UnlockedItem);
+
+                    continue; //move on to the next item in the list
+                }            
+            }
+            //item is part of a reward deck
+            else if (ItemTemplate.RewardDecks.Find(TemplateToUpdate.RewardDeck) != INDEX_NONE )
+            {
+                // Check if the item list should be shown as the upgraded version of the items
+                // Example: Experimental Grenade projects that should show Acid Bomb instead of Acid Grenade if AdvancedGrenade Tech has been researched
+                Tier2Template = ItemTemplateManager.GetUpgradedItemTemplateFromBase(ItemTemplate.DataName);            
+                Tier3Template = ItemTemplateManager.GetUpgradedItemTemplateFromBase(Tier2Template.DataName);
+
+                if (Tier2Template != none && `XCOMHQ.IsTechResearched(Tier2Template.CreatorTemplateName))
+                {
+                    ItemTemplate = Tier2Template;   //eg showing Acid Bomb instead of Grenade if Advanced Explosives is done
+                }
+
+                if (Tier3Template != none && `XCOMHQ.IsTechResearched(Tier3Template.CreatorTemplateName))
+                {
+                    ItemTemplate = Tier3Template;   //eg showing Acid Warhead instead of Bomb/Grenade if Superior Explosives is done
+                }                
+
+                UnlockedItem.Unlock = ItemTemplate.GetItemFriendlyNameNoStats();
+                UnlockedItem.isRewardDeck = true; // Will always show as a possible item reward, finally                
+
+                UnlockedItem.isPartial = false; // For experimental items, we pretend that it will never be partial and we will always get one of the items
+            
+                //add it to the OUT array
+                UnlockedItems.AddItem(UnlockedItem);
+
+                continue; //move on to the next item in the list
+            }
+        } //end item template !=none
+    } // end item templates check
+
+    // Tech Templates that give items directly e.g. IcarusArmor tech template gives MediumAlienArmor
+    if (TemplateToUpdate.ItemRewards.Length > 0)
+    {
+        for ( i = 0; i < TemplateToUpdate.ItemRewards.Length; i++)
+        {
+            ItemTemplate = ItemTemplateManager.FindItemTemplate(TemplateToUpdate.ItemRewards[i]);
+
+            if (ItemTemplate != none)
+            {
+                //check its not already on the list
+                if (UnlockedItems.Find('Unlock', ItemTemplate.GetItemFriendlyNameNoStats()) == INDEX_NONE)
+                {
+                    UnlockedItem.ItemType = 'Item';
+                    UnlockedItem.isRewardDeck = false;  //a bit of special case, this one should always be false
+                    UnlockedItem.isPartial = false;     //a bit of special case, this one should always be false                    
+
+                    // Need to cater for scenario where the tech gives schematic instead of item
+                    SchematicTemplate = X2SchematicTemplate(ItemTemplate);
+                    if (SchematicTemplate != none) //example: Bolt Caster Tech gives Bolt Caster Schematic
+                    {
+                        UnlockedItem.Unlock = SchematicTemplate.GetItemFriendlyName();                        
+                    }
+                    else //example: IcarusArmor tech template gives MediumAlienArmor
+                    {
+                        UnlockedItem.Unlock = ItemTemplate.GetItemFriendlyNameNoStats();                        
+                    }
+    
+                    //add it to the OUT array as it's not part of it already
+                    UnlockedItems.AddItem(UnlockedItem);
+                    continue; //move on to the next item
+                }
+            } //end != none
+        } //end for loop
+    }//end direct item check
+
+    //THIS would be where MORE SPECIAL LOGIC goes for the case-by-case basis, not required for my PexM listener though
+    //Maybe a new config struct for (i ; i < default.arrOverride ; i++)
+    //  { // check and do stuff }
+    //  add to the OUT array
+    //  log
+}
+
+//find out if this item requires more than the current tech
+static function bool IsPartialUnlock(name ExcludedTech, array<name> RequiredTechs)
+{
+    local X2StrategyElementTemplateManager StratMgr;
+	local X2TechTemplate TechTemplate;
+	local int i;
+	
+	StratMgr = class'X2StrategyElementTemplateManager'.static.GetStrategyElementTemplateManager();
+
+	for(i = 0; i < RequiredTechs.Length; i++)
+	{
+		TechTemplate = X2TechTemplate(StratMgr.FindStrategyElementTemplate(RequiredTechs[i]));
+
+		if(TechTemplate != none && TechTemplate.DataName != ExcludedTech )
+		{
+			if(!`XCOMHQ.TechTemplateIsResearched(TechTemplate))
+			{
+                //xcom still needs more techs to unlock this
+                return true;
+			}
+		}
+	}
+    //xcom does not need more techs to unlock this
+	return false;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//  STRING FORMATION FOR DISPLAY
+///////////////////////////////////////////////////////////////////////////////
+
+//construct the entire unlocks description string ... line by line ...
+simulated function MessageArray(out string Unlocks, array<UnlockedItems_Orig> UnlockedItems)
+{
+    local int i; 
+
+    for( i = 0; i < UnlockedItems.Length; i++)
+    {
+        //add the correct Icon
+        switch ( UnlockedItems[i].ItemType )
+        {
+            case 'Item':            Unlocks $= (ItemIcon $ ": ");               break;
+            case 'Tech':            Unlocks $= (ResearchIcon $ ": ");           break;
+            case 'PG':              Unlocks $= (ProvingGroundIcon $ ": ");      break;
+            case 'Shadow':          Unlocks $= (ShadowIcon $ ": ");             break;
+            case 'Facility':        Unlocks $= (FacilityIcon $ ": ");           break;
+            case 'FacilityUpgrade': Unlocks $= (FacilityUpgradeIcon $ ": ");    break;
+            case 'Psi':             Unlocks $= (PsiIcon $ ": ");                break;
+            default:                Unlocks $= (ErrorIcon $ ": ");              break;
+        }       
+
+        //show or hide the unlock name ... pexm has some special handling for its items, see above
+        if ( UnlockedItems[i].bHide )   { Unlocks $= m_strRewardsUnknown;      }
+        else                            { Unlocks $= UnlockedItems[i].Unlock;   }
+
+        //append the partial tag if it needs more techs/stuff
+        if ( UnlockedItems[i].isPartial )   { Unlocks $= " " $m_strRewardsPartial;     }
+
+        //append the deck tag if it is part of a deck 
+        if ( UnlockedItems[i].isRewardDeck ){ Unlocks $= " " $m_strRewardsPossible;    }
+
+        //if we have more lines add a line break
+        if(i < UnlockedItems.Length - 1)    { Unlocks $= "\n";                  }
     }
 
-    for( i = 0; i < Imports.Length; i++ )
+    if (UnlockedItems.Length <= 0 )
     {
-        Unlocks $= (Icon $ ":");
-        Unlocks $= Imports[i];
-
-        if(i < Imports.Length - 1)
-        {
-            Unlocks $= "\n";
-        }
+        Unlocks $= ShadowIcon $": " $m_strRewardsEmpty;
     }
 }
 
@@ -406,11 +696,11 @@ simulated function AddToLists(array<XComGameState_Tech> Techs, optional bool Dis
 
             if (Completed)
             {
-                Header.InitHeaderItem(, caps(AlreadyCompleted));
+                Header.InitHeaderItem(, caps(m_strAlreadyCompleted));
             }
             else
             {
-                Header.InitHeaderItem(, caps(RequirementsNotMet));
+                Header.InitHeaderItem(, caps(m_strRequirementsNotMet));
             }
 
             Research_Com.AddItem(Dummy);
@@ -421,24 +711,24 @@ simulated function AddToLists(array<XComGameState_Tech> Techs, optional bool Dis
         Research_Tech.AddItem(Tech);
         ListItem = Spawn(class'UIInventory_ListItem', Research_List.ItemContainer);
 
-        ListItem.InitInventoryListCommodity(Commodities[i], Tech.GetReference(), caps(ButtonResearch), eUIConfirmButtonStyle_Default, ConfirmButtonX, ConfirmButtonY);
+        ListItem.InitInventoryListCommodity(Commodities[i], Tech.GetReference(), caps(m_strStart), eUIConfirmButtonStyle_Default, ConfirmButtonX, ConfirmButtonY);
 
         if (Disabled)
         {
             if (Completed)
             {
-                ListItem.DisableListItem(AlreadyCompleted);
+                ListItem.DisableListItem(m_strAlreadyCompleted);
             }
             else
             {
-                ListItem.DisableListItem(RequirementsNotMet);
+                ListItem.DisableListItem(m_strRequirementsNotMet);
             }
         }    
         else
         {
             if (!XComHQ.CanAffordCommodity(Commodities[i]) || !XComHQ.MeetsCommodityRequirements(Commodities[i]))
             {
-                ListItem.DisableListItem(RequirementsNotMet);
+                ListItem.DisableListItem(m_strRequirementsNotMet);
             }
         }    
     }
@@ -453,13 +743,13 @@ simulated function AddActiveTech(XComGameState_Tech TechState)
     Techs.AddItem(TechState);
     Commodities = TechToCommodity(Techs);
     Commodity = Commodities[0];
-    Commodity.Title @= caps(InProgress);
+    Commodity.Title @= caps(m_strInProgress);
 
     Research_Com.AddItem(Commodity);
     Research_Tech.AddItem(TechState);
 
     ListItem = Spawn(class'UIInventory_ListItem', Research_List.ItemContainer);
-    ListItem.InitInventoryListCommodity(Commodity, TechState.GetReference(), caps(Pause), eUIConfirmButtonStyle_Default, ConfirmButtonX, ConfirmButtonY);
+    ListItem.InitInventoryListCommodity(Commodity, TechState.GetReference(), caps(m_strPause), eUIConfirmButtonStyle_Default, ConfirmButtonX, ConfirmButtonY);
 }
 
 simulated function Sort(out array<XComGameState_Tech> Techs)

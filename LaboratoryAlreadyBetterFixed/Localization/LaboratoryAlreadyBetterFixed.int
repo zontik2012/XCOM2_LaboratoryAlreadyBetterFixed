@@ -2,13 +2,17 @@
 OpenUILaboratory = "Choose Research"
 
 [UILaboratory]
-Title = "Secondary Research"
-TitleUnlocks = "Unlocks"
-Pause = "Pause"
-Paused = "[Paused]"
-ButtonResearch = "Research"
-AlreadyCompleted = "Already Completed"
-RequirementsNotMet = "Requirements Not Met"
-InProgress = "[In Progress]"
-Resume = "Resume"
-ToggleQueue = "Toggle Queue"
+m_strTitle=CHOOSE SECONDARY RESEARCH RESEARCH
+m_strStart=RESEARCH
+m_strPause=PAUSE
+m_strResume=RESUME RESEARCH
+m_strInProgress=IN PROGRESS
+m_strAlreadyCompleted=ALREADY COMPLETED
+m_strRequirementsNotMet=REQUIREMENTS NOT MET
+ToggleQueue=Toggle Queue
+
+m_strRewardsTitle=UNLOCKS
+m_strRewardsUnknown=[?????]
+m_strRewardsEmpty=There is no information to display
+m_strRewardsPossible=[Possible]
+m_strRewardsPartial=[Partial]

@@ -7,15 +7,20 @@
     <SteamPublishID>0</SteamPublishID>
     <AssemblyName>LaboratoryAlreadyBetterFixed</AssemblyName>
     <RootNamespace>LaboratoryAlreadyBetterFixed</RootNamespace>
+    <ProjectGuid>{34703ada-5fa2-455f-bc8d-67b9577a4f1c}</ProjectGuid>
   </PropertyGroup>
   <ItemGroup>
     <Folder Include="Config\" />
     <Folder Include="Localization\" />
+    <Folder Include="Content" />
     <Folder Include="Src\" />
     <Folder Include="Src\LaboratoryAlreadyBetterFixed\" />
     <Folder Include="Src\LaboratoryAlreadyBetterFixed\Classes\" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Content\AVG_Laboratory_A.umap">
+      <SubType>Content</SubType>
+    </Content>
     <Content Include="Localization\LaboratoryAlreadyBetterFixed.int">
       <SubType>Content</SubType>
     </Content>
