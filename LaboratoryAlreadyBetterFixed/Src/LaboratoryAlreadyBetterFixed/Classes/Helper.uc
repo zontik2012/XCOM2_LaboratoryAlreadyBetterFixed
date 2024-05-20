@@ -1,162 +1,163 @@
-class Helper extends object;
+class Helper extends Object
+	abstract;
 
-// Generic Helper functions used by multiple different mods
-// Placed here for convenience and clarity
-
-// Updates StaffSlots of a facility to match changes done by the mod
-static function UpdateStaffSlots(name FacilityName)
+static function BuildUIAlert_Mod_LaboratoryAlreadyBetterFixed(
+	out DynamicPropertySet PropertySet,
+	Name AlertName,
+	delegate<X2StrategyGameRulesetDataStructures.AlertCallback> CallbackFunction,
+	Name EventToTrigger,
+	string SoundToPlay,
+	bool bImmediateDisplay = true)
 {
+	class'X2StrategyGameRulesetDataStructures'.static.BuildDynamicPropertySet(PropertySet, 'UIAlert_LaboratoryAlreadyBetterFixed', AlertName, CallbackFunction, bImmediateDisplay, true, true, false);
+	class'X2StrategyGameRulesetDataStructures'.static.AddDynamicNameProperty(PropertySet, 'EventToTrigger', EventToTrigger);
+	class'X2StrategyGameRulesetDataStructures'.static.AddDynamicStringProperty(PropertySet, 'SoundToPlay', SoundToPlay);
+}
+
+static function UILaboratoryResearchComplete(StateObjectReference TechRef)
+{
+	local XComGameStateHistory History;
+	local XComGameState_Tech TechState;
+	local DynamicPropertySet PropertySet;
+	local name EventToTrigger;
+
+	History = `XCOMHISTORY;
+	TechState = XComGameState_Tech(History.GetGameStateForObjectID(TechRef.ObjectID));
+
+	if (TechState.bBreakthrough)
+		EventToTrigger = 'BreakthroughComplete';
+	else if (TechState.bInspired)
+		EventToTrigger = 'InspirationComplete';
+	else
+		EventToTrigger = 'LaboratoryResearchCompletePopup';
+
+	BuildUIAlert_Mod_LaboratoryAlreadyBetterFixed(PropertySet, 'eAlert_LaboratoryResearchComplete', LaboratoryResearchCompletePopupCB, EventToTrigger, "Geoscape_ResearchComplete", true);
+	class'X2StrategyGameRulesetDataStructures'.static.AddDynamicIntProperty(PropertySet, 'TechRef', TechRef.ObjectID);
+	`HQPRES.QueueDynamicPopup(PropertySet);
+}
+
+static function LaboratoryResearchCompletePopupCB(Name eAction, out DynamicPropertySet AlertData, optional bool bInstant = false)
+{
+	local XComGameStateHistory History;
 	local XComGameState NewGameState;
 	local XComGameState_HeadquartersXCom XComHQ;
-	local XComGameState_FacilityXCom Facility;
-	local X2FacilityTemplate FacilityTemplate;
-	local XComGameState_StaffSlot StaffSlotState;
-	local X2StaffSlotTemplate StaffSlotTemplate;
-	local X2StrategyElementTemplateManager StrategyElementTemplateManager;
-	local int i;
-	local bool ShouldAdd, ShouldReplace;
+	local XComGameState_FacilityXCom FacilityState;
 
-	XComHQ = XComGameState_HeadquartersXCom(`XCOMHISTORY.GetSingleGameStateObjectForClass(class'XComGameState_HeadquartersXCom'));
-	Facility = XComHQ.GetFacilityByName(FacilityName);
-	
-	if (Facility != none)
+	if (eAction == 'eUIAction_Accept')
 	{
-		NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Updating Existing StaffSlots to accept incoming changes");
-		StrategyElementTemplateManager = class'X2StrategyElementTemplateManager'.static.GetStrategyElementTemplateManager();
-		FacilityTemplate = Facility.GetMyTemplate();
+		History = `XCOMHISTORY;
+		XComHQ = XComGameState_HeadquartersXCom(History.GetSingleGameStateObjectForClass(class'XComGameState_HeadquartersXCom'));
+		FacilityState = XComHQ.GetFacilityByName('Laboratory');
 
-		for (i = 0; i < FacilityTemplate.StaffSlotDefs.Length; i++)
-		{
-			if (i < Facility.StaffSlots.Length)
-			{
-				//Check for Template mismatch
-				if(Facility.GetStaffSlot(i).GetMyTemplateName() != FacilityTemplate.StaffSlotDefs[i].StaffSlotTemplateName)
-				{
-					ShouldAdd = true;
-					ShouldReplace = true;
-				}
-			}
-			else
-			{
-				ShouldAdd = true;
-				ShouldReplace = false;
-			}
+		if( `GAME.GetGeoscape().IsScanning() )
+			`HQPRES.StrategyMap2D.ToggleScan();
 
-			if (ShouldAdd)
-			{
-				ShouldAdd = false;
-				StaffSlotTemplate = X2StaffSlotTemplate(StrategyElementTemplateManager.FindStrategyElementTemplate(FacilityTemplate.StaffSlotDefs[i].StaffSlotTemplateName));
-
-				// Create slot state and link to this facility
-				StaffSlotState = StaffSlotTemplate.CreateInstanceFromTemplate(NewGameState);
-				StaffSlotState.Facility = Facility.GetReference();
-
-				// Check for starting the slot locked
-				if(FacilityTemplate.StaffSlotDefs[i].bStartsLocked)
-				{
-					StaffSlotState.LockSlot();
-				}					
-
-				if (ShouldReplace)
-				{
-					// Replace staffslot item
-					Facility.StaffSlots[i] = StaffSlotState.GetReference();
-				}
-				else
-				{
-					// Add game state and add to staffslots list
-					Facility.StaffSlots.InsertItem(i, StaffSlotState.GetReference());	
-				}
-			}
-		}
-
-		if (NewGameState.GetNumGameStateObjects() > 0)
-		{
-			XComGameInfo(class'Engine'.static.GetCurrentWorldInfo().Game).GameRuleset.SubmitGameState(NewGameState);
-		}
-		else
-		{
-			`XCOMHistory.CleanupPendingGameState(NewGameState);
-		}
+		FacilityState.GetMyTemplate().SelectFacilityFn(FacilityState.GetReference(), true);
+		LaboratoryResearchReportPopup(History.GetGameStateForObjectID(class'X2StrategyGameRulesetDataStructures'.static.GetDynamicIntProperty(AlertData, 'TechRef')).GetReference());
+	}
+	else if( eAction == 'eUIAction_Cancel' )
+	{
+		NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Trigger Research Complete Popup Closed");
+		`XEVENTMGR.TriggerEvent('OnResearchCompletePopupClosed', , , NewGameState);
+		`GAMERULES.SubmitGameState(NewGameState);
 	}
 }
 
-static function array<XComGameState_FacilityXCom> GetAllFacilitiesByName(name FacilityName)
+static function LaboratoryResearchReportPopup(StateObjectReference TechRef, optional bool bInstantInterp = false)
+{
+	local UILaboratoryResearchReport LaboratoryReport;
+	if(`SCREENSTACK.IsNotInStack(class'UILaboratoryResearchReport'))
+	{
+		LaboratoryReport = `HQPRES.Spawn(class'UILaboratoryResearchReport', `HQPRES);
+		LaboratoryReport.bInstantInterp = bInstantInterp;
+		`SCREENSTACK.Push(LaboratoryReport, `HQPRES.Get3DMovie());
+		LaboratoryReport.InitResearchReport(TechRef);
+	}
+}
+
+static function UIChooseLaboratoryResearch(optional bool bInstant = false)
+{
+	local UIScreen TempScreen;
+
+	if (`SCREENSTACK.IsNotInStack(class'UIChooseLaboratoryResearch'))
+	{
+		TempScreen = `HQPRES.Spawn(class'UIChooseLaboratoryResearch', `HQPRES);
+		UIChooseLaboratoryResearch(TempScreen).bInstantInterp = bInstant;
+		`SCREENSTACK.Push(TempScreen, `HQPRES.Get3DMovie());
+	}
+}
+
+//---------------------------------------------------------------------------------------
+//--------------------------------LABORATORY PROJECTS------------------------------------
+//---------------------------------------------------------------------------------------
+static function XComGameState_Tech GetCurrentLaboratoryTech()
 {
 	local XComGameStateHistory History;
-	local XComGameState_HeadquartersXCom XComHQ;
-	local XComGameState_FacilityXCom Facility;
-	local StateObjectReference FacilityRef;
-	local array<XComGameState_FacilityXCom> Facilities;
+	local XComGameState_HeadquartersProjectLaboratory LaboratoryProject;
+	local int idx;
 
 	History = `XCOMHISTORY;
-	XComHQ = XComGameState_HeadquartersXCom(History.GetSingleGameStateObjectForClass(class'XComGameState_HeadquartersXCom'));
 
-	foreach XcomHQ.Facilities(FacilityRef)
+	for(idx = 0; idx < `XCOMHQ.Projects.Length; idx++)
 	{
-		Facility = XComGameState_FacilityXCom(History.GetGameStateForObjectID(FacilityRef.ObjectID));
+		LaboratoryProject = XComGameState_HeadquartersProjectLaboratory(History.GetGameStateForObjectID(`XCOMHQ.Projects[idx].ObjectID));
 
-		if(Facility.GetMyTemplateName() == FacilityName)
+		if(LaboratoryProject != none && !LaboratoryProject.bForcePaused)
 		{
-			Facilities.AddItem(Facility);
+			return XComGameState_Tech(History.GetGameStateForObjectID(LaboratoryProject.ProjectFocus.ObjectID));
 		}
 	}
 
-	return Facilities;
+	return none;
 }
 
-static function array<XComGameState_StaffSlot> GetAllStaffSlots(optional bool FilledOnly = false)
+//---------------------------------------------------------------------------------------
+static function XComGameState_HeadquartersProjectLaboratory GetCurrentLaboratoryProject()
 {
 	local XComGameStateHistory History;
-	local XComGameState_HeadquartersXCom XComHQ;
-	local XComGameState_FacilityXCom Facility;
-	local StateObjectReference FacilityRef;
-	local XComGameState_StaffSlot StaffSlot;
-	local array<XComGameState_StaffSlot> StaffSlots;
-	local int i;
+	local XComGameState_HeadquartersProjectLaboratory LaboratoryProject;
+	local int idx;
 
 	History = `XCOMHISTORY;
-	XComHQ = class'UIUtilities_Strategy'.static.GetXComHQ();
 
-	foreach XComHQ.Facilities(FacilityRef)
+	for (idx = 0; idx < `XCOMHQ.Projects.Length; idx++)
 	{
-		Facility = XComGameState_FacilityXCom(History.GetGameStateForObjectID(FacilityRef.ObjectID));
+		LaboratoryProject = XComGameState_HeadquartersProjectLaboratory(History.GetGameStateForObjectID(`XCOMHQ.Projects[idx].ObjectID));
 
-		for (i = 0; i < Facility.StaffSlots.Length; i++)
+		if (LaboratoryProject != none && !LaboratoryProject.bForcePaused)
 		{
-			StaffSlot = Facility.GetStaffSlot(i);
-
-			if (FilledOnly)
-			{
-				if (Staffslot.IsSlotFilled())
-				{
-					StaffSlots.AddItem(StaffSlot);
-				}
-			}
-			else
-			{
-				StaffSlots.AddItem(StaffSlot);
-			}
+			return LaboratoryProject;
 		}
 	}
 
-	return StaffSlots;
+	return none;
 }
 
-static function array<XComGameState_StaffSlot> GetAllStaffSlotsByName(name StaffSlotName, optional bool FilledOnly = false)
+//---------------------------------------------------------------------------------------
+// If no argument, returns whether or not there's a lab project at all
+// If argument is passed, returns if there's lab project with such tech
+static function bool HasLaboratoryResearchProject(optional StateObjectReference TechRef)
 {
-	local XComGameState_StaffSlot StaffSlot;
-	local array<XComGameState_StaffSlot> StaffSlots, MatchingSlots;
+	local int idx;
+	local XComGameStateHistory History;
+	local XComGameState_HeadquartersProjectLaboratory LaboratoryProject;
 
-	StaffSlots = GetAllStaffSlots(FilledOnly);
-
-	foreach StaffSlots(Staffslot)
+	if (TechRef.ObjectID > 0)
 	{
-		if (StaffSlot.GetMyTemplateName() == StaffSlotName)
+		History = `XCOMHISTORY;
+
+		for (idx = 0; idx < `XCOMHQ.Projects.Length; idx++)
 		{
-			MatchingSlots.AddItem(StaffSlot);
+			LaboratoryProject = XComGameState_HeadquartersProjectLaboratory(History.GetGameStateForObjectID(`XCOMHQ.Projects[idx].ObjectID));
+
+			if (LaboratoryProject != none && LaboratoryProject.ProjectFocus == TechRef)
+			{
+				return true;
+			}
 		}
+
+		return false;
 	}
 
-	return MatchingSlots;
+	return (GetCurrentLaboratoryProject() != none);
 }

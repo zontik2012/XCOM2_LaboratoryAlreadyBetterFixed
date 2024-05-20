@@ -18,6 +18,9 @@
     <Folder Include="Src\LaboratoryAlreadyBetterFixed\Classes\" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Config\XComStandardResourcesBar.ini">
+      <SubType>Content</SubType>
+    </Content>
     <Content Include="Content\AVG_Laboratory_A.umap">
       <SubType>Content</SubType>
     </Content>
@@ -30,25 +33,31 @@
     <Content Include="Config\XComEngine.ini" />
     <Content Include="Config\XComGame.ini" />
     <Content Include="Localization\XComGame.int" />
-    <Content Include="Src\LaboratoryAlreadyBetterFixed\Classes\AddFacilityButton.uc">
+    <Content Include="Src\LaboratoryAlreadyBetterFixed\Classes\X2EventListener_ChooseLaboratoryResearchUI.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\LaboratoryAlreadyBetterFixed\Classes\XComGameStateContext_LaboratoryResearch.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\LaboratoryAlreadyBetterFixed\Classes\UIFacility_LabsAlreadyBetter.uc">
       <SubType>Content</SubType>
     </Content>
     <Content Include="Src\LaboratoryAlreadyBetterFixed\Classes\Helper.uc">
       <SubType>Content</SubType>
     </Content>
-    <Content Include="Src\LaboratoryAlreadyBetterFixed\Classes\LaboratoryProject.uc">
+    <Content Include="Src\LaboratoryAlreadyBetterFixed\Classes\UIScreenListener_ShowTechUnlocks.uc">
       <SubType>Content</SubType>
     </Content>
-    <Content Include="Src\LaboratoryAlreadyBetterFixed\Classes\Monkey_UIChooseResearch.uc">
+    <Content Include="Src\LaboratoryAlreadyBetterFixed\Classes\XComGameState_HeadquartersProjectLaboratory.uc">
       <SubType>Content</SubType>
     </Content>
-    <Content Include="Src\LaboratoryAlreadyBetterFixed\Classes\UILaboratory.uc">
+    <Content Include="Src\LaboratoryAlreadyBetterFixed\Classes\UIScreenListener_PatchChooseResearch.uc">
       <SubType>Content</SubType>
     </Content>
-    <Content Include="Src\LaboratoryAlreadyBetterFixed\Classes\UIReport.uc">
+    <Content Include="Src\LaboratoryAlreadyBetterFixed\Classes\UIAlert_LaboratoryAlreadyBetterFixed.uc">
       <SubType>Content</SubType>
     </Content>
-    <Content Include="Src\LaboratoryAlreadyBetterFixed\Classes\Upgrades.uc">
+    <Content Include="Src\LaboratoryAlreadyBetterFixed\Classes\UILaboratoryResearchReport.uc">
       <SubType>Content</SubType>
     </Content>
     <Content Include="Src\LaboratoryAlreadyBetterFixed\Classes\X2DownloadableContentInfo_LaboratoryAlreadyBetterFixed.uc" />

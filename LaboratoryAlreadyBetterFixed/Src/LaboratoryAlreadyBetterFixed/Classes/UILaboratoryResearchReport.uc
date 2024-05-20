@@ -1,4 +1,4 @@
-class UIReport extends UIScreen;
+class UILaboratoryResearchReport extends UIScreen;
 // Modified from UIResearchReport
 
 var public localized string m_strCodename;
@@ -10,18 +10,22 @@ var name CameraTag;
 
 var public bool bInstantInterp;
 
-var UILargeButton ContinueButton;
-var XComGameState_FacilityXCom Facility;
-
 simulated function InitScreen(XComPlayerController InitController, UIMovie InitMovie, optional name InitName)
 {
+	local float InterpTime;
+	
 	super.InitScreen(InitController, InitMovie, InitName);
 	UpdateNavHelp();
 
-	class'UIUtilities'.static.DisplayUI3D(DisplayTag, CameraTag, 0.0f);
+	InterpTime = `HQINTERPTIME;
 
-    SetTimer(0.1f, false, nameof(HideRoomContainer));
-    InitResearchReport();
+	if(bInstantInterp)
+	{
+		InterpTime = 0.0f;
+	}
+
+	if( UIMovie_3D(Movie) != none )
+		class'UIUtilities'.static.DisplayUI3D(DisplayTag, CameraTag, InterpTime);
 }
 
 simulated function UpdateNavHelp()
@@ -30,7 +34,7 @@ simulated function UpdateNavHelp()
 
 	NavHelp = `HQPRES.m_kAvengerHUD.NavHelp;
 	NavHelp.ClearButtonHelp();
-	NavHelp.AddBackButton(CloseScreen);
+	NavHelp.AddContinueButton(CloseScreen);
 	NavHelp.Show();
 }
 
@@ -53,15 +57,17 @@ simulated function CloseScreen()
 {
 	`HQPRES.m_kAvengerHUD.NavHelp.ClearButtonHelp();
 	super.CloseScreen();
+	
+	`SCREENSTACK.Push(`HQPRES.Spawn(class'UIChooseLaboratoryResearch', `HQPRES), `HQPRES.Get3DMovie());
 }
 
-simulated function InitResearchReport()
+simulated function InitResearchReport(StateObjectReference TechRef)
 {
 	local int i;
 	local string Unlocks;
 	local array<String> arrStrings;
 	local XComGameStateHistory History;
-	local XComGameState_Tech Tech;
+	local XComGameState_Tech TechState;
 	local XComGameState_WorldRegion RegionState;
 	local array<StateObjectReference> arrNewTechs;
 	local array<StateObjectReference> arrNewInstantTechs;
@@ -72,23 +78,22 @@ simulated function InitResearchReport()
 	local array<X2FacilityTemplate> arrNewFacilities;
 	local array<X2FacilityUpgradeTemplate> arrNewUpgrades;
 	local XGParamTag ParamTag;
-	local LaboratoryProject LaboratoryProject;
 	local XComGameState NewGameState;
     
 	class'UIUtilities_Sound'.static.PlayOpenSound();
 
 	History = `XCOMHISTORY;
-	Facility = `XCOMHQ.GetFacilityByName('Laboratory');
+	TechState = XComGameState_Tech(History.GetGameStateForObjectID(TechRef.ObjectID));
 
-	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("UIReport.InitResearchReport");
+	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("UILaboratoryResearchReport.InitResearchReport");
 
-    LaboratoryProject = LaboratoryProject(History.GetGameStateForObjectID(Facility.BuildQueue[0].ObjectID));
-	Tech = XComGameState_Tech(NewGameState.ModifyStateObject(class'XComGameState_Tech', LaboratoryProject.ProjectFocus.ObjectID));
-    // Prevents the report cards from also popping up in the main research facility
-	Tech.bSeenResearchCompleteScreen = true;
+	// Flag the research report as having been seen
+	TechState.bSeenResearchCompleteScreen = true;
+	`XEVENTMGR.TriggerEvent('OnResearchReport', TechState, TechState, NewGameState);
+	`XCOMGAME.GameRuleset.SubmitGameState(NewGameState);
 
 	// Unlocks--------------------------------------------------------------------
-	Tech.GetMyTemplate().GetUnlocks(arrNewTechs, arrNewProjects, arrNewItems, arrNewFacilities, arrNewUpgrades, arrNewInstantTechs, arrNewBreakthroughTechs, arrNewInspiredTechs);
+	TechState.GetMyTemplate().GetUnlocks(arrNewTechs, arrNewProjects, arrNewItems, arrNewFacilities, arrNewUpgrades, arrNewInstantTechs, arrNewBreakthroughTechs, arrNewInspiredTechs);
 
 	// Items
 	arrStrings = class'UIAlert'.static.GetItemUnlockStrings(arrNewItems);
@@ -135,39 +140,37 @@ simulated function InitResearchReport()
 			Unlocks $= "\n";
 	}
 
-	if (Tech.GetMyTemplate().UnlockedDescription != "")
+	if (TechState.GetMyTemplate().UnlockedDescription != "")
 	{
 		if (Unlocks != "") Unlocks $= "\n";
 
 		ParamTag = XGParamTag(`XEXPANDCONTEXT.FindTag("XGParam"));
 
 		// Datapads
-		if (Tech.IntelReward > 0)
+		if (TechState.IntelReward > 0)
 		{
-			ParamTag.StrValue0 = string(Tech.IntelReward);
+			ParamTag.StrValue0 = string(TechState.IntelReward);
 		}
 
 		// Facility Leads
-		if (Tech.RegionRef.ObjectID != 0)
+		if (TechState.RegionRef.ObjectID != 0)
 		{
-			RegionState = XComGameState_WorldRegion(`XCOMHISTORY.GetGameStateForObjectID(Tech.RegionRef.ObjectID));
+			RegionState = XComGameState_WorldRegion(`XCOMHISTORY.GetGameStateForObjectID(TechState.RegionRef.ObjectID));
 			ParamTag.StrValue0 = RegionState.GetDisplayName();
 		}
 
-		Unlocks $= `XEXPAND.ExpandString(Tech.GetMyTemplate().UnlockedDescription);
+		Unlocks $= `XEXPAND.ExpandString(TechState.GetMyTemplate().UnlockedDescription);
 	}
 
 	AS_UpdateResearchReport(
 		m_strResearchReport, 
-		class'UIUtilities_Text'.static.CapsCheckForGermanScharfesS( Tech.GetDisplayName() ),
-		m_strCodename @ Tech.GetCodeName(),
-		class'X2StrategyGameRulesetDataStructures'.static.GetDateString( Tech.CompletionTime ),
-		Tech.GetImage(),
+		class'UIUtilities_Text'.static.CapsCheckForGermanScharfesS( TechState.GetDisplayName() ),
+		m_strCodename @ TechState.GetCodeName(),
+		class'X2StrategyGameRulesetDataStructures'.static.GetDateString( TechState.CompletionTime ),
+		TechState.GetImage(),
 		Unlocks,
-		Tech.GetLongDescription(),
+		TechState.GetLongDescription(),
 		m_strTopSecret);
-
-	`XCOMGAME.GameRuleset.SubmitGameState(NewGameState);
 }
 
 simulated function AS_UpdateResearchReport(string header, string project, string code, string date, string image, string unlocks, string description, string greeble)
@@ -206,7 +209,6 @@ simulated function bool OnUnrealCommand(int cmd, int arg)
 		case class'UIUtilities_Input'.const.FXS_KEY_ENTER:
 		case class'UIUtilities_Input'.const.FXS_KEY_SPACEBAR:
 			CloseScreen();
-        	`SCREENSTACK.Push(`HQPRES.Spawn(class'UILaboratory', `HQPRES), `HQPRES.Get3DMovie());
 			break;
 		default:
 			bHandled = false;

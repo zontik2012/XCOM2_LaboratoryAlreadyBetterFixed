@@ -1,18 +1,36 @@
-[AddFacilityButton]
-OpenUILaboratory = "Choose Research"
+[X2DownloadableContentInfo_LaboratoryAlreadyBetterFixed]
+LaboratoryResearchEventLabel="LAB TECH:"
 
-[UILaboratory]
-m_strTitle=CHOOSE SECONDARY RESEARCH RESEARCH
-m_strStart=RESEARCH
+[UIFacility_LabsAlreadyBetter]
+m_strStartResearch=CHOOSE LAB RESEARCH
+m_strProjectedHours=PROJECTED HOURS:
+m_strProjectedDays=PROJECTED DAYS:
+m_strProgress=PROGRESS:
+
+[UIAlert_LaboratoryAlreadyBetterFixed]
+m_strTitleLabelComplete=LAB RESEARCH COMPLETED
+
+[UIChooseLaboratoryResearch]
+m_strTitle=CHOOSE LAB RESEARCH
+m_strEmptyListTitle=NO PROJECTS AVAILABLE
+m_strInventoryLabel=Available Research Projects:
+m_strBuy=START
+m_strResume=RESUME
 m_strPause=PAUSE
-m_strResume=RESUME RESEARCH
-m_strInProgress=IN PROGRESS
-m_strAlreadyCompleted=ALREADY COMPLETED
-m_strRequirementsNotMet=REQUIREMENTS NOT MET
-ToggleQueue=Toggle Queue
+m_strTime=Projected Progress:
+m_strPriority=[PRIORITY]
+m_strInstant=[INSTANT]
+m_strBreakthrough=[BREAKTHROUGH]
+m_strInspired=[INSPIRED]
+m_strPaused=[PAUSED]
+m_strInProgress="[IN PROGRESS]"
 
-m_strRewardsTitle=UNLOCKS
-m_strRewardsUnknown=[?????]
-m_strRewardsEmpty=There is no information to display
-m_strRewardsPossible=[Possible]
-m_strRewardsPartial=[Partial]
+[UIScreenListener_PatchChooseResearch]
+m_strLabProject="[LAB RESEARCH]"
+
+[UIScreenListener_ShowTechUnlocks]
+Title="Unlocks"
+m_strPartial = "[Partial]"
+m_strPossible = "[Possible]"
+m_strObfuscate = "[?????]"
+m_strEmptyUnlocks = "There is no information to display"
